@@ -2,7 +2,7 @@ use inc::Module::Install;
 name 'Log-Sigil';
 all_from 'lib/Log/Sigil.pm';
 
-# requires '';
+requires "Class::Accessor";
 
 tests 't/*.t';
 author_tests 'xt';
