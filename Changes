@@ -1,4 +1,6 @@
 Revision history for Perl extension Log::Sigil
 
+0.02    Sat May 14 22:50:00 2011
+        - Add a dump method
 0.01    Fri Apr 29 04:33:57 2011
         - original version

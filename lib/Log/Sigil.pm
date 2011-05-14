@@ -4,15 +4,16 @@ use strict;
 use warnings;
 use base "Class::Singleton";
 use Class::Accessor "antlers";
+use Data::Dumper qw( Dumper );
 
 use constant DEFAULT => {
-    sigils    => [ q{#}, qw( *  =  +  - ) ],
+    sigils    => [ q{#}, qw( - ) ],
     count     => 3,
     delimiter => q{ },
 };
 use constant DEBUG => 0;
 
-our $VERSION   = "0.01";
+our $VERSION   = "0.02";
 
 has "sigils";
 has "count";
@@ -103,6 +104,14 @@ sub warn {
         FH               => *STDERR,
         is_suffix_needed => $is_suffix_needed,
     );
+}
+
+sub dump {
+    my $self = shift;
+    local $Data::Dumper::Terse = 1;
+    chomp( my $dump = Dumper( shift ) );
+
+    return $self->warn( $dump );
 }
 
 1;
