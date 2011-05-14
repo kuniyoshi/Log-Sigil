@@ -13,7 +13,7 @@ use constant DEFAULT => {
 };
 use constant DEBUG => 0;
 
-our $VERSION   = "0.02";
+our $VERSION   = "0.03";
 
 has "sigils";
 has "count";
@@ -71,7 +71,7 @@ warn "!!! suffixes: ", join q{ }, @suffixes if DEBUG;
         $message   = join q{ }, $message, @suffixes;
     }
 
-    return join $self->delimiter, ( $prefix x $self->count ), $message;
+    return join $self->delimiter, ( $prefix x $self->count ), $message, "\n";
 }
 
 sub print {
@@ -79,39 +79,46 @@ sub print {
     my %param = @_;
     my $FH    = delete $param{FH};
 
-    print { $FH } $self->format( %param ), "\n";
+    print { $FH } map {
+        $self->format( message => $_, is_suffix_needed => $param{is_suffix_needed} )
+    } @{ $param{messages} };
 
     return $self;
 }
 
 sub say {
-    my $self    = shift;
-    my $message = shift;
+    my $self     = shift;
+    my @messages = @_;
 
     return $self->print(
-        message => $message,
-        FH      => *STDOUT,
+        messages => \@messages,
+        FH       => *STDOUT,
     );
 }
 
 sub warn {
-    my $self             = shift;
-    my $message          = shift;
-    my $is_suffix_needed = $message !~ m{ [\n] \z}msx;
+    my $self     = shift;
+    my @messages = @_;
+    my $is_suffix_needed = $messages[-1] !~ m{ [\n] \z}msx;
 
     return $self->print(
-        message          => $message,
+        messages         => \@messages,
         FH               => *STDERR,
         is_suffix_needed => $is_suffix_needed,
     );
 }
 
 sub dump {
-    my $self = shift;
-    local $Data::Dumper::Terse = 1;
-    chomp( my $dump = Dumper( shift ) );
+    my $self     = shift;
+    my @messages = @_;
 
-    return $self->warn( $dump );
+    local $Data::Dumper::Terse = 1;
+
+    return $self->print(
+        messages         => [ map { Dumper( $_ ) } @messages ],
+        FH               => *STDERR,
+        is_suffix_needed => 1,
+    );
 }
 
 1;
