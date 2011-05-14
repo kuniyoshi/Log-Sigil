@@ -13,7 +13,7 @@ use constant DEFAULT => {
 };
 use constant DEBUG => 0;
 
-our $VERSION   = "0.03";
+our $VERSION   = "0.04";
 
 has "sigils";
 has "count";
@@ -71,7 +71,7 @@ warn "!!! suffixes: ", join q{ }, @suffixes if DEBUG;
         $message   = join q{ }, $message, @suffixes;
     }
 
-    return join $self->delimiter, ( $prefix x $self->count ), $message, "\n";
+    return join $self->delimiter, ( $prefix x $self->count ), $message;
 }
 
 sub print {
@@ -79,9 +79,11 @@ sub print {
     my %param = @_;
     my $FH    = delete $param{FH};
 
-    print { $FH } map {
-        $self->format( message => $_, is_suffix_needed => $param{is_suffix_needed} )
-    } @{ $param{messages} };
+    print { $FH } $self->format(
+        message          => shift( @{ $param{messages} } ),
+        is_suffix_needed => $param{is_suffix_needed},
+    ), @{ $param{messages} };
+    print { $FH } "\n";
 
     return $self;
 }
