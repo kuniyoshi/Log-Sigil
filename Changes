@@ -1,5 +1,7 @@
 Revision history for Perl extension Log::Sigil
 
+0.07    Sun May 16 00:33:00 2011
+        - Fix a 'requires' bug in Makefile.PL.
 0.06    Sun May 16 00:27:00 2011
         - Suppot subroutine level change.  When caller subroutine changes,
           this repots it as reset sigil.
