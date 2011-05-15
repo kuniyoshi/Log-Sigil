@@ -13,12 +13,13 @@ use constant DEFAULT => {
 };
 use constant DEBUG => 0;
 
-our $VERSION   = "0.04";
+our $VERSION   = "0.05";
 
 has "sigils";
 has "count";
 has "delimiter";
 has "history";
+has "splitter";
 
 sub _new_instance {
     my $class = shift;
@@ -79,11 +80,14 @@ sub print {
     my %param = @_;
     my $FH    = delete $param{FH};
 
+    $self->splitter( defined $, ? $, : q{} );
+
+    local $,;
+
     print { $FH } $self->format(
-        message          => shift( @{ $param{messages} } ),
+        message          => join( $self->splitter, @{ $param{messages} } ),
         is_suffix_needed => $param{is_suffix_needed},
-    ), @{ $param{messages} };
-    print { $FH } "\n";
+    ), "\n";
 
     return $self;
 }
@@ -136,7 +140,16 @@ Log::Sigil - show warnings with sigil prefix
   my $log = Log::Sigil->new;
 
   $log->warn( "hi there." );                  # -> ### hi there.
-  $log->warn( "a prefix will be changeed." ); # -> *** a prefix will be changed.
+  $log->warn( "a prefix will be changeed." ); # -> --- a prefix will be changed.
+
+  package Foo;
+
+  $log->warn( "When package is changed, prefix will be resetted." );
+    # -> ### When package is changed, prefix will be resetted.
+
+  package main;
+
+  exit;
 
 =head1 DESCRIPTION
 
@@ -164,6 +177,10 @@ likes print, but file handle is specified STDOUT.
 =item wran
 
 likes print, but file handle is specified STDERR.
+
+=item dump
+
+likes warn, but args are changed by Data::Dumper::Dumper.
 
 =back
 

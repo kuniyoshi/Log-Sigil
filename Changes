@@ -1,6 +1,9 @@
 Revision history for Perl extension Log::Sigil
 
-0.04    Sat May 15 00:21:00 2011
+0.05    Sun May 15 23:44:00 2011
+        - Fix a bug in multi messages, that prints odd suffix.
+        - Supports $, var.
+0.04    Sun May 15 00:21:00 2011
         - Fix a bug in multi messages, that prints all messages are formated.
           Needs only first message is formated.
 0.03    Sat May 14 23:55:00 2011
