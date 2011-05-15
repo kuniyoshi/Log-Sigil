@@ -3,6 +3,7 @@ package Log::Sigil;
 use strict;
 use warnings;
 use base "Class::Singleton";
+use Carp qw( croak );
 use Class::Accessor "antlers";
 use Data::Dumper qw( Dumper );
 
@@ -13,13 +14,17 @@ use constant DEFAULT => {
 };
 use constant DEBUG => 0;
 
-our $VERSION   = "0.05";
+our $VERSION   = "0.06";
 
 has "sigils";
 has "count";
 has "delimiter";
 has "history";
 has "splitter";
+
+sub new {
+    croak "Call 'instance' to create a instance of this class insted.";
+}
 
 sub _new_instance {
     my $class = shift;
@@ -45,17 +50,18 @@ sub format {
     my @suffixes;
 
     $depth{from}++
-        while caller( $depth{from} ) eq __PACKAGE__;
+        while index( ( caller( $depth{from} ) )[3], __PACKAGE__) == 0;
 warn "!!! depth: from: $depth{from}" if DEBUG;
 
-    my( $package, $filename, $line ) = caller( $depth{from} );
-warn "!!! package: $package"   if DEBUG;
-warn "!!! filename: $filename" if DEBUG;
-warn "!!! line: $line"         if DEBUG;
+    my( $package, $filename, $line, $subroutine ) = caller( $depth{from} );
+warn "!!! package: $package"       if DEBUG;
+warn "!!! filename: $filename"     if DEBUG;
+warn "!!! line: $line"             if DEBUG;
+warn "!!! subroutine: $subroutine" if DEBUG;
 
     $depth{history}++
         while $depth{history} < @{ $self->history }
-            && $self->history->[ $depth{history} ] eq $package;
+            && $self->history->[ $depth{history} ] eq $subroutine;
 warn "!!! depth: history: $depth{history}" if DEBUG;
 
     $depth{history} = $#{ $self->sigils }
@@ -64,7 +70,7 @@ warn "!!! depth: history: $depth{history}" if DEBUG;
 
     $prefix = $self->sigils->[ $depth{history} ];
 
-    unshift @{ $self->history }, $package;
+    unshift @{ $self->history }, $subroutine;
 
     if ( $is_suffix_needed ) {
         @suffixes  = ( "at", $filename, "line", $line );
@@ -144,8 +150,8 @@ Log::Sigil - show warnings with sigil prefix
 
   package Foo;
 
-  $log->warn( "When package is changed, prefix will be resetted." );
-    # -> ### When package is changed, prefix will be resetted.
+  $log->warn( "When package is changed, prefix will be reset." );
+    # -> ### When package is changed, prefix will be reset.
 
   package main;
 

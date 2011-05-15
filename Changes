@@ -1,5 +1,9 @@
 Revision history for Perl extension Log::Sigil
 
+0.06    Sun May 16 00:27:00 2011
+        - Suppot subroutine level change.  When caller subroutine changes,
+          this repots it as reset sigil.
+        - new will be croak, use 'instance' instead.
 0.05    Sun May 15 23:44:00 2011
         - Fix a bug in multi messages, that prints odd suffix.
         - Supports $, var.
