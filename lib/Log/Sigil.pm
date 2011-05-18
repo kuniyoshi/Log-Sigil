@@ -3,7 +3,7 @@ package Log::Sigil;
 use strict;
 use warnings;
 use base "Class::Singleton";
-use Carp qw( croak );
+use Carp qw( carp croak );
 use Class::Accessor "antlers";
 use Data::Dumper qw( Dumper );
 
@@ -23,7 +23,9 @@ has "history";
 has "splitter";
 
 sub new {
-    croak "Call 'instance' to create a instance of this class insted.";
+    my $class = shift;
+    carp "Call 'instance' to create a instance of this class insted.";
+    return $class->instance;
 }
 
 sub _new_instance {
