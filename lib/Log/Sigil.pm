@@ -1,24 +1,27 @@
 package Log::Sigil;
-
 use strict;
 use warnings;
 use base "Class::Singleton";
 use Carp qw( carp croak );
+use Readonly;
 use Class::Accessor "antlers";
 use Data::Dumper qw( Dumper );
+use List::Util qw( first );
 
-use constant DEFAULT => {
-    sigils    => [ q{#}, qw( - ) ],
-    count     => 3,
-    delimiter => q{ },
-};
 use constant DEBUG => 0;
 
-our $VERSION   = "0.07";
+Readonly my %DEFAULT => {
+    sigils    => [ q{#}, qw( - ) ],
+    repeats   => 3,
+    delimiter => q{ },
+};
+
+our $VERSION = "0.08";
 
 has "sigils";
-has "count";
+has "repeats";
 has "delimiter";
+has "bias";
 has "history";
 has "splitter";
 
@@ -33,13 +36,19 @@ sub _new_instance {
     my %param = @_;
     my $self  = bless \%param, $class;
 
-    foreach my $name ( keys %{ +DEFAULT } ) {
-        $self->$name( DEFAULT->{ $name } )
+    foreach my $name ( keys %DEFAULT ) {
+        $self->$name( $DEFAULT{ $name } )
             unless defined $self->$name;
     }
 
-    $self->history( [ ] );
+    $self->reset;
 
+    return $self;
+}
+
+sub reset {
+    my $self = shift;
+    $self->history( [ ] );
     return $self;
 }
 
@@ -48,39 +57,42 @@ sub format {
     my( $message, $is_suffix_needed )
         = @{ { @_ } }{qw( message is_suffix_needed )};
     my %depth = ( from => 0, history => 0 );
+    my %context;
     my $prefix;
     my @suffixes;
 
-    $depth{from}++
-        while index( ( caller( $depth{from} ) )[3], __PACKAGE__) == 0;
-warn "!!! depth: from: $depth{from}" if DEBUG;
+    while ( @context{qw( package filename line subroutine )} = caller( ++$depth{from} ) ) {
+        last
+            if $context{subroutine} && 0 != index $context{subroutine}, __PACKAGE__;
+    }
+warn "!!! depth: from: $depth{from}"        if DEBUG;
+warn "!!! package: $context{package}"       if DEBUG;
+warn "!!! subroutine: $context{subroutine}" if DEBUG;
 
-    my( $package, $filename, $line, $subroutine ) = caller( $depth{from} );
-warn "!!! package: $package"       if DEBUG;
-warn "!!! filename: $filename"     if DEBUG;
-warn "!!! line: $line"             if DEBUG;
-warn "!!! subroutine: $subroutine" if DEBUG;
+    my $name = first { defined $_ } ( @context{qw( subroutine package )}, q{} );
+warn "!!! name: $name" if DEBUG;
 
     $depth{history}++
         while $depth{history} < @{ $self->history }
-            && $self->history->[ $depth{history} ] eq $subroutine;
+            && ${ $self->history }[ $depth{history} ] eq $name;
 warn "!!! depth: history: $depth{history}" if DEBUG;
 
+    # Just a safety for the array length.
     $depth{history} = $#{ $self->sigils }
         if $depth{history} > $#{ $self->sigils };
 warn "!!! depth: history: $depth{history}" if DEBUG;
 
     $prefix = $self->sigils->[ $depth{history} ];
 
-    unshift @{ $self->history }, $subroutine;
+    unshift @{ $self->history }, $name;
 
-    if ( $is_suffix_needed ) {
-        @suffixes  = ( "at", $filename, "line", $line );
-warn "!!! suffixes: ", join q{ }, @suffixes if DEBUG;
+    if ( $context{filename} && $context{line} && $is_suffix_needed ) {
+        @suffixes  = ( "at", $context{filename}, "line", $context{line} );
+warn "!!! suffixes is needed: ", join q{ }, @suffixes if DEBUG;
         $message   = join q{ }, $message, @suffixes;
     }
 
-    return join $self->delimiter, ( $prefix x $self->count ), $message;
+    return join $self->delimiter, ( $prefix x $self->repeats ), $message;
 }
 
 sub print {
@@ -111,8 +123,8 @@ sub say {
 }
 
 sub warn {
-    my $self     = shift;
-    my @messages = @_;
+    my $self             = shift;
+    my @messages         = @_;
     my $is_suffix_needed = $messages[-1] !~ m{ [\n] \z}msx;
 
     return $self->print(
@@ -166,29 +178,24 @@ and prefi is a sigil.  This module just add a few prefix to argument
 of message, but prefix siginals where are you from.  Changing
 sigil by "caller" has most/only things to this module exists.
 
+*Note: this can [not] add a suffix of filename and line in the file
+when called from [no] sub.  This depends on 'caller' function.
+
 =head1 METHODS
 
 =over
 
-=item format
-
-returns a formatted string which has a few sigils.
-
-=item print
-
-prints a message via format to file handle.
-
 =item say
 
-likes print, but file handle is specified STDOUT.
+Likes say message with sigil prefix.
 
 =item wran
 
-likes print, but file handle is specified STDERR.
+Likes say, but file handle is specified STDERR.
 
 =item dump
 
-likes warn, but args are changed by Data::Dumper::Dumper.
+Likes warn, but args are changed by Data::Dumper::Dumper.
 
 =back
 
@@ -196,13 +203,21 @@ likes warn, but args are changed by Data::Dumper::Dumper.
 
 =over
 
-=item deflated_sigils
+=item sigils
 
-is a string which sorted by using order sigil.
+Is a array-ref which sorted by using order sigil.
 
-=item count
+=item repeats
 
-specifies how many sigils are added.
+Specifies how many sigil is repeated.
+
+=item delimiter
+
+Will be placed between sigil and log message.
+
+=item bias
+
+Controls changing of sigil.  But not installed yet.
 
 =back
 
@@ -218,3 +233,4 @@ This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 =cut
+

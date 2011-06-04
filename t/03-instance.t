@@ -2,8 +2,9 @@ use Test::More tests => 2;
 
 my $module  = "Log::Sigil";
 my @methods = qw(
-    sigils  count  delimiter  history  splitter
-    format  print  say  warn  dump
+    instance  _new_instance  new
+    sigils  repeats  delimiter  bias  history  splitter
+    reset  format  print  say  warn  dump
 );
 eval "use $module";
 

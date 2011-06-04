@@ -1,5 +1,8 @@
 Revision history for Perl extension Log::Sigil
 
+0.08    Thu Jul  4 18:28:00 2011
+        - 'new' returns instance but carps.
+        - Fix a some bugs, but i don't remember those.
 0.07    Sun May 16 00:33:00 2011
         - Fix a 'requires' bug in Makefile.PL.
 0.06    Sun May 16 00:27:00 2011
