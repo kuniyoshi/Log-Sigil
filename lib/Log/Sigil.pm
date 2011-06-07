@@ -16,7 +16,7 @@ Readonly my %DEFAULT => {
     delimiter => q{ },
 };
 
-our $VERSION = "0.08";
+our $VERSION = "0.09";
 
 has "sigils";
 has "repeats";
