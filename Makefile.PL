@@ -4,7 +4,6 @@ all_from 'lib/Log/Sigil.pm';
 
 requires "Class::Singleton";
 requires "Class::Accessor";
-requires "List::Util";
 requires "Readonly";
 
 tests 't/*.t';

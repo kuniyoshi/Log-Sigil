@@ -6,7 +6,6 @@ use Carp qw( carp croak );
 use Readonly;
 use Class::Accessor "antlers";
 use Data::Dumper qw( Dumper );
-use List::Util qw( first );
 
 use constant DEBUG => 0;
 
@@ -16,7 +15,7 @@ Readonly my %DEFAULT => {
     delimiter => q{ },
 };
 
-our $VERSION = "0.09";
+our $VERSION = "0.10";
 
 has "sigils";
 has "repeats";
@@ -27,7 +26,7 @@ has "splitter";
 
 sub new {
     my $class = shift;
-    carp "Call 'instance' to create a instance of this class insted.";
+    carp "Call 'instance' insted of new.";
     return $class->instance;
 }
 
@@ -61,20 +60,37 @@ sub format {
     my $prefix;
     my @suffixes;
 
-    while ( @context{qw( package filename line subroutine )} = caller( ++$depth{from} ) ) {
+    while ( ! $context{name} ) {
+        @context{qw( package filename line subroutine )} = caller ++$depth{from};
+
         last
-            if $context{subroutine} && 0 != index $context{subroutine}, __PACKAGE__;
+            unless $context{package};
+
+        if ( $context{package} ne __PACKAGE__ ) {
+            if ( $context{subroutine} ) {
+                next
+                    if 0 == index $context{subroutine}, __PACKAGE__;
+
+                $context{name} = $context{subroutine};
+                @context{qw( filename line )} = ( caller( $depth{from} - 1 ) )[1, 2];
+            }
+            else {
+                $context{name} = $context{package};
+            }
+        }
     }
+
+    $context{name} ||= q{};
+
 warn "!!! depth: from: $depth{from}"        if DEBUG;
 warn "!!! package: $context{package}"       if DEBUG;
+warn "!!! filename: $context{filename}"     if DEBUG;
+warn "!!! line: $context{line}"             if DEBUG;
 warn "!!! subroutine: $context{subroutine}" if DEBUG;
-
-    my $name = first { defined $_ } ( @context{qw( subroutine package )}, q{} );
-warn "!!! name: $name" if DEBUG;
 
     $depth{history}++
         while $depth{history} < @{ $self->history }
-            && ${ $self->history }[ $depth{history} ] eq $name;
+            && ${ $self->history }[ $depth{history} ] eq $context{name};
 warn "!!! depth: history: $depth{history}" if DEBUG;
 
     # Just a safety for the array length.
@@ -84,12 +100,15 @@ warn "!!! depth: history: $depth{history}" if DEBUG;
 
     $prefix = $self->sigils->[ $depth{history} ];
 
-    unshift @{ $self->history }, $name;
+    unshift @{ $self->history }, $context{name};
+warn "!!! histroy: ", join " - ", @{ $self->history } if DEBUG;
 
     if ( $context{filename} && $context{line} && $is_suffix_needed ) {
-        @suffixes  = ( "at", $context{filename}, "line", $context{line} );
-warn "!!! suffixes is needed: ", join q{ }, @suffixes if DEBUG;
-        $message   = join q{ }, $message, @suffixes;
+        $message = sprintf(
+            "%s at %s line %d.",
+            $message,
+            @context{qw( filename line )},
+        );
     }
 
     return join $self->delimiter, ( $prefix x $self->repeats ), $message;
@@ -217,7 +236,7 @@ Will be placed between sigil and log message.
 
 =item bias
 
-Controls changing of sigil.  But not installed yet.
+Controls changing of sigil, But not installed yet.
 
 =back
 

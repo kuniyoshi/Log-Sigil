@@ -6,7 +6,7 @@ my $log;
 
 stderr_like(
     sub { $log = Log::Sigil->new },
-    qr{Call 'instance' to create a instance of this class insted.},
+    qr{Call 'instance' insted of new.},
 );
 
 isa_ok( $log, "Log::Sigil" );

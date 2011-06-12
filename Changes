@@ -1,5 +1,8 @@
 Revision history for Perl extension Log::Sigil
 
+0.10    Sun Jun 12 19:57:00 2011
+        - Fix a bug that prints invalid warnings suffix.
+          The suffix likes 'foo at main.pl line 8.'.
 0.09    Thu Jun  7 23:28:00 2011
         - Add requirement module to Makefile.PL, it is Test::Output
 0.08    Sat Jun  4 18:28:00 2011
