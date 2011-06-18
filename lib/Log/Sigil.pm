@@ -15,19 +15,20 @@ Readonly my %DEFAULT => {
     delimiter => q{ },
 };
 
-our $VERSION = "0.10";
+our $VERSION = "0.11";
 
 has "sigils";
 has "repeats";
 has "delimiter";
 has "bias";
+has "quiet";
 has "history";
 has "splitter";
 
 sub new {
     my $class = shift;
     carp "Call 'instance' insted of new.";
-    return $class->instance;
+    return $class->instance( @_ );
 }
 
 sub _new_instance {
@@ -59,6 +60,7 @@ sub format {
     my %context;
     my $prefix;
     my @suffixes;
+    my $count = abs( $self->bias || 0 );
 
     while ( ! $context{name} ) {
         @context{qw( package filename line subroutine )} = caller ++$depth{from};
@@ -70,6 +72,9 @@ sub format {
             if ( $context{subroutine} ) {
                 next
                     if 0 == index $context{subroutine}, __PACKAGE__;
+
+                next
+                    if $count-- > 0;
 
                 $context{name} = $context{subroutine};
                 @context{qw( filename line )} = ( caller( $depth{from} - 1 ) )[1, 2];
@@ -119,6 +124,9 @@ sub print {
     my %param = @_;
     my $FH    = delete $param{FH};
 
+    return $self
+        if $self->quiet;
+
     $self->splitter( defined $, ? $, : q{} );
 
     local $,;
@@ -141,6 +149,17 @@ sub say {
     );
 }
 
+sub sayf {
+    my $self     = shift;
+    my $format   = shift;
+    my @messages = @_;
+
+    return $self->print(
+        messages => [ sprintf( $format, @messages ) ],
+        FH       => *STDOUT,
+    );
+}
+
 sub warn {
     my $self             = shift;
     my @messages         = @_;
@@ -148,6 +167,19 @@ sub warn {
 
     return $self->print(
         messages         => \@messages,
+        FH               => *STDERR,
+        is_suffix_needed => $is_suffix_needed,
+    );
+}
+
+sub warnf {
+    my $self             = shift;
+    my $format           = shift;
+    my @messages         = @_;
+    my $is_suffix_needed = $messages[0] !~ m{ [\n] \z}msx;
+
+    return $self->print(
+        messages         => [ sprintf( $format, @messages ) ],
         FH               => *STDERR,
         is_suffix_needed => $is_suffix_needed,
     );
@@ -178,17 +210,17 @@ Log::Sigil - show warnings with sigil prefix
   use Log::Sigil;
   my $log = Log::Sigil->new;
 
+  $log->quiet( 1 ) if ! DEBUG;
+
   $log->warn( "hi there." );                  # -> ### hi there.
   $log->warn( "a prefix will be changeed." ); # -> --- a prefix will be changed.
 
   package Foo;
-
-  $log->warn( "When package is changed, prefix will be reset." );
-    # -> ### When package is changed, prefix will be reset.
+  sub new  { $log->bias( 1 ); bless { }, shift }
+  sub warn { $log->warn( @_ ) }
 
   package main;
-
-  exit;
+  Foo->new->warn( "foo" );
 
 =head1 DESCRIPTION
 
@@ -208,9 +240,17 @@ when called from [no] sub.  This depends on 'caller' function.
 
 Likes say message with sigil prefix.
 
+=item sayf
+
+Likes say, but first argument will be format of the sprintf.
+
 =item wran
 
 Likes say, but file handle is specified STDERR.
+
+=item warnf
+
+Likes warn, but first argument will be format of the sprintf.
 
 =item dump
 
@@ -236,7 +276,14 @@ Will be placed between sigil and log message.
 
 =item bias
 
-Controls changing of sigil, But not installed yet.
+Controls changing of sigil.  bias for the depth of caller.
+
+=item quiet
+
+Tells Log::Sigil to no output required.
+
+Please remove Log::Sigil from code in production.
+Set true this when you felt Log::Sigil is riot.
 
 =back
 

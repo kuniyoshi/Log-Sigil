@@ -1,5 +1,9 @@
 Revision history for Perl extension Log::Sigil
 
+0.11    foo bar baz 2011
+        - Fix a bug that ignores new's arguments.
+        - Add bias, and quiet attributes.
+        - Add sayf, and warnf methods.
 0.10    Sun Jun 12 19:57:00 2011
         - Fix a bug that prints invalid warnings suffix.
           The suffix likes 'foo at main.pl line 8.'.
