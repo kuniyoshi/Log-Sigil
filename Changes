@@ -1,5 +1,7 @@
 Revision history for Perl extension Log::Sigil
 
+0.12    Sat Aug  6 16:35:00 2011
+        - Change test using from IO::Scalar to open.
 0.11    foo bar baz 2011
         - Fix a bug that ignores new's arguments.
         - Add bias, and quiet attributes.

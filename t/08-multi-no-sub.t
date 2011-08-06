@@ -1,9 +1,9 @@
 use Test::More;
+use autodie qw( open close );
 use Log::Sigil;
-use IO::Scalar;
 
 my $log = Log::Sigil->instance;
-my $FH  = IO::Scalar->new( \my $output );
+open my $FH, ">", \my $output;
 
 package Foo;
 $log->print( messages => ["foo"], FH => $FH );
@@ -14,6 +14,8 @@ package main;
 $log->print( messages => ["foo"], FH => $FH );
 $log->print( messages => ["bar"], FH => $FH );
 $log->print( messages => ["baz"], FH => $FH );
+
+close $FH;
 
 my @logs = split m{\n}, $output;
 
@@ -32,7 +34,7 @@ TODO: {
     local $TODO = q{'caller' could not recognize package when it is [not] under sub.};
 
     foreach my $index ( 1 .. @logs ) {
-        is( $logs[ $index ], $wish_list[ $index ] );
+        is( $logs[ $index - 1 ], $wish_list[ $index - 1 ] );
     }
 }
 

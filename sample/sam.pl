@@ -16,7 +16,6 @@ $, = "T";
 #$log->warn( qw( foo bar baz ) );
 
 package Foo;
-
 sub foo {
     $log->warn( "Foo::foo" );
     $log->warn( "Foo::foo" );
@@ -30,7 +29,6 @@ sub bar {
 }
 
 package Bar;
-
 sub foo {
     $log->warn( "Bar::foo" );
     $log->warn( "Bar::foo" );
@@ -44,7 +42,6 @@ sub bar {
 }
 
 package main;
-
 $log->warn( "foo" );
 $log->warn( "foo" );
 
@@ -59,5 +56,5 @@ Bar::bar();
 $log->warn( "foo" );
 $log->warn( "foo" );
 
-$log->dump( [] );
+$log->dump( [ ] );
 

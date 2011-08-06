@@ -15,7 +15,7 @@ Readonly my %DEFAULT => {
     delimiter => q{ },
 };
 
-our $VERSION = "0.11";
+our $VERSION = "0.12";
 
 has "sigils";
 has "repeats";
@@ -68,20 +68,21 @@ sub format {
         last
             unless $context{package};
 
-        if ( $context{package} ne __PACKAGE__ ) {
-            if ( $context{subroutine} ) {
-                next
-                    if 0 == index $context{subroutine}, __PACKAGE__;
+        next
+            if $context{package} eq __PACKAGE__;
 
-                next
-                    if $count-- > 0;
+        if ( $context{subroutine} ) {
+            next
+                if 0 == index $context{subroutine}, __PACKAGE__;
 
-                $context{name} = $context{subroutine};
-                @context{qw( filename line )} = ( caller( $depth{from} - 1 ) )[1, 2];
-            }
-            else {
-                $context{name} = $context{package};
-            }
+            next
+                if $count-- > 0;
+
+            $context{name} = $context{subroutine};
+            @context{qw( filename line )} = ( caller( $depth{from} - 1 ) )[1, 2];
+        }
+        else {
+            $context{name} = $context{package};
         }
     }
 
