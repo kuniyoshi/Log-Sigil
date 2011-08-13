@@ -1,9 +1,9 @@
 use Test::More;
-use autodie qw( open close );
 use Log::Sigil;
 
 my $log = Log::Sigil->instance;
-open my $FH, ">", \my $output;
+open my $FH, ">", \my $output
+    or die $!;
 
 my $foo = sub {
     $log->print( messages => [ "foo" ], FH => $FH );
@@ -12,7 +12,8 @@ my $foo = sub {
 };
 $foo->( );
 
-close $FH;
+close $FH
+    or die $!;
 
 my @logs = split m{\n}, $output;
 

@@ -1,15 +1,16 @@
 use Test::More;
-use autodie qw( open close );
 use Log::Sigil;
 
 my $log = Log::Sigil->instance;
-open my $FH, ">", \my $output;
+open my $FH, ">", \my $output
+    or die $!;
 
 $log->print( messages => [ "foo" ], FH => $FH );
 $log->print( messages => [ "bar" ], FH => $FH );
 $log->print( messages => [ "baz" ], FH => $FH );
 
-close $FH;
+close $FH
+    or die $!;
 
 my @logs = split m{\n}, $output;
 
