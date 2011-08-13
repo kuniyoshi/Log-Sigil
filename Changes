@@ -1,5 +1,7 @@
 Revision history for Perl extension Log::Sigil
 
+0.14    Sat Aug 13 13:18:10 2011
+        - autodie joins corelist at 5.10, so i use or die instead.
 0.13    Sat Aug 13  9:34:10 2011
         - Fix a bug that makes hash-ref on Readonly.
 0.12    Sat Aug  6 16:35:00 2011
