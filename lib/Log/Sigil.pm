@@ -9,13 +9,13 @@ use Data::Dumper qw( Dumper );
 
 use constant DEBUG => 0;
 
-Readonly my %DEFAULT => {
+Readonly my %DEFAULT => (
     sigils    => [ q{#}, qw( - ) ],
     repeats   => 3,
     delimiter => q{ },
-};
+);
 
-our $VERSION = "0.12";
+our $VERSION = "0.13";
 
 has "sigils";
 has "repeats";
