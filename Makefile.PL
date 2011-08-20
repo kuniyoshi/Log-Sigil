@@ -1,5 +1,6 @@
 use inc::Module::Install;
-perl_version "5.8.0";
+perl_version '5.008';
+
 name 'Log-Sigil';
 all_from 'lib/Log/Sigil.pm';
 
