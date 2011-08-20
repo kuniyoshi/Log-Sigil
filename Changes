@@ -1,5 +1,7 @@
 Revision history for Perl extension Log::Sigil
 
+0.15    Sat Aug 20 14:26:52 2011
+        - Need perl 5.8.0 or later
 0.14    Sat Aug 13 13:18:10 2011
         - autodie joins corelist at 5.10, so i use or die instead.
 0.13    Sat Aug 13  9:34:10 2011
