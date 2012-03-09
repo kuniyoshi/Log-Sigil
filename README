@@ -1,27 +1,70 @@
-This is Perl module Log::Sigil.
+NAME
+    Log::Sigil - show warnings with sigil prefix
 
-INSTALLATION
+SYNOPSIS
+      use Log::Sigil;
+      my $log = Log::Sigil->new;
 
-Log::Sigil installation is straightforward. If your CPAN shell is set up,
-you should just be able to do
+      $log->quiet( 1 ) if ! DEBUG;
 
-    % cpan Log::Sigil
+      $log->warn( "hi there." );                  # -> ### hi there.
+      $log->warn( "a prefix will be changeed." ); # -> --- a prefix will be changed.
 
-Download it, unpack it, then build it as per the usual:
+      package Foo;
+      sub new  { $log->bias( 1 ); bless { }, shift }
+      sub warn { $log->warn( @_ ) }
 
-    % perl Makefile.PL
-    % make && make test
+      package main;
+      Foo->new->warn( "foo" );
 
-Then install it:
+DESCRIPTION
+    Log::Sigil is a message formatter. Formatting adds a few prefix, and
+    prefi is a sigil. This module just add a few prefix to argument of
+    message, but prefix siginals where are you from. Changing sigil by
+    "caller" has most/only things to this module exists.
 
-    % make install
+    *Note: this can [not] add a suffix of filename and line in the file when
+    called from [no] sub. This depends on 'caller' function.
 
-DOCUMENTATION
+METHODS
+    say Likes say message with sigil prefix.
 
-Log::Sigil documentation is available as in POD. So you can do:
+    sayf
+        Likes say, but first argument will be format of the sprintf.
 
-    % perldoc Log::Sigil
+    wran
+        Likes say, but file handle is specified STDERR.
 
-to read the documentation online with your favorite pager.
+    warnf
+        Likes warn, but first argument will be format of the sprintf.
 
-kuniyoshi kouji
+    dump
+        Likes warn, but args are changed by Data::Dumper::Dumper.
+
+PROPERTIES
+    sigils
+        Is a array-ref which sorted by using order sigil.
+
+    repeats
+        Specifies how many sigil is repeated.
+
+    delimiter
+        Will be placed between sigil and log message.
+
+    bias
+        Controls changing of sigil. bias for the depth of caller.
+
+    quiet
+        Tells Log::Sigil to no output required.
+
+        Please remove Log::Sigil from code in production. Set true this when
+        you felt Log::Sigil is riot.
+
+AUTHOR
+    kuniyoshi kouji <kuniyoshi@cpan.org>
+
+SEE ALSO
+LICENSE
+    This library is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
+
