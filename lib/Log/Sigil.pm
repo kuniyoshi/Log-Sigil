@@ -1,202 +1,85 @@
 package Log::Sigil;
 use strict;
 use warnings;
-use base "Class::Singleton";
-use Carp qw( carp croak );
-use Readonly;
-use Class::Accessor "antlers";
-use Data::Dumper qw( Dumper );
+use Exporter "import";
+use List::Util qw( max );
 
 use constant DEBUG => 0;
 
-Readonly my %DEFAULT => (
-    sigils    => [ q{#}, qw( - ) ],
-    repeats   => 3,
-    delimiter => q{ },
+our @EXPORT  = qw( swarn swarn2 );
+our $VERSION = "1.01";
+
+our @SIGILS    = (
+    qw(
+        =
+        +
+        !
+        @
+    ),
+    q{#},
+    qw(
+        $
+        %
+        ^
+        &
+        *
+        -
+        |
+        \
+        ~
+        ?
+    ),
 );
+our $TIMES     = 3;
+our $SEPARATOR = q{ };
+our $BIAS      = 0;
+our %INDEX     = ( "main::" => 0 ); # Ensure `values` + 1 is the next.
+my $ANON_REGEX = qr{ (?: .*::__ANON__ | [(]eval[)] ) \z}msx;
 
-our $VERSION = "0.15";
+sub swarn {
+    my $nth  = 0;
+    my $bias = 1;
 
-has "sigils";
-has "repeats";
-has "delimiter";
-has "bias";
-has "quiet";
-has "history";
-has "splitter";
+    $nth++
+        while caller $nth;
 
-sub new {
-    my $class = shift;
-    carp "Call 'instance' insted of new.";
-    return $class->instance( @_ );
-}
+    my( $package, $filename, $line, $subroutine ) = caller $nth - $bias - $BIAS;
 
-sub _new_instance {
-    my $class = shift;
-    my %param = @_;
-    my $self  = bless \%param, $class;
+    $bias++;
 
-    foreach my $name ( keys %DEFAULT ) {
-        $self->$name( $DEFAULT{ $name } )
-            unless defined $self->$name;
+    $subroutine = "main::"
+        if $subroutine eq join q{::}, __PACKAGE__, "swarn";
+
+    $subroutine = "${subroutine}::$line"
+        if $subroutine =~ m{$ANON_REGEX};
+
+    $bias++
+        if $subroutine =~ m{$ANON_REGEX};
+
+    if ( my @list = caller $nth - $bias - $BIAS ) {
+        ( undef, undef, $line ) = @list;
     }
 
-    $self->reset;
+warn "\$package:\t$package"       if DEBUG;
+warn "\$filename:\t$filename"     if DEBUG;
+warn "\$line:\t$line"             if DEBUG;
+warn "\$subroutine:\t$subroutine" if DEBUG;
 
-    return $self;
-}
-
-sub reset {
-    my $self = shift;
-    $self->history( [ ] );
-    return $self;
-}
-
-sub format {
-    my $self  = shift;
-    my( $message, $is_suffix_needed )
-        = @{ { @_ } }{qw( message is_suffix_needed )};
-    my %depth = ( from => 0, history => 0 );
-    my %context;
-    my $prefix;
-    my @suffixes;
-    my $count = abs( $self->bias || 0 );
-
-    while ( ! $context{name} ) {
-        @context{qw( package filename line subroutine )} = caller ++$depth{from};
-
-        last
-            unless $context{package};
-
-        next
-            if $context{package} eq __PACKAGE__;
-
-        if ( $context{subroutine} ) {
-            next
-                if 0 == index $context{subroutine}, __PACKAGE__;
-
-            next
-                if $count-- > 0;
-
-            $context{name} = $context{subroutine};
-            @context{qw( filename line )} = ( caller( $depth{from} - 1 ) )[1, 2];
-        }
-        else {
-            $context{name} = $context{package};
-        }
+    unless ( exists $INDEX{ $subroutine } ) {
+        $INDEX{ $subroutine } = max( values %INDEX ) + 1;
     }
 
-    $context{name} ||= q{};
+    my $sigil = $SIGILS[ $INDEX{ $subroutine } % @SIGILS ];
+warn "\$sigil:\t$sigil" if DEBUG;
+    unshift @_, $sigil x $TIMES, $SEPARATOR;
+    push @_, " by ${filename}[$line]: $subroutine\n"; # Ignore if original has \n at the end.
 
-warn "!!! depth: from: $depth{from}"        if DEBUG;
-warn "!!! package: $context{package}"       if DEBUG;
-warn "!!! filename: $context{filename}"     if DEBUG;
-warn "!!! line: $context{line}"             if DEBUG;
-warn "!!! subroutine: $context{subroutine}" if DEBUG;
-
-    $depth{history}++
-        while $depth{history} < @{ $self->history }
-            && ${ $self->history }[ $depth{history} ] eq $context{name};
-warn "!!! depth: history: $depth{history}" if DEBUG;
-
-    # Just a safety for the array length.
-    $depth{history} = $#{ $self->sigils }
-        if $depth{history} > $#{ $self->sigils };
-warn "!!! depth: history: $depth{history}" if DEBUG;
-
-    $prefix = $self->sigils->[ $depth{history} ];
-
-    unshift @{ $self->history }, $context{name};
-warn "!!! histroy: ", join " - ", @{ $self->history } if DEBUG;
-
-    if ( $context{filename} && $context{line} && $is_suffix_needed ) {
-        $message = sprintf(
-            "%s at %s line %d.",
-            $message,
-            @context{qw( filename line )},
-        );
-    }
-
-    return join $self->delimiter, ( $prefix x $self->repeats ), $message;
+    warn @_;
 }
 
-sub print {
-    my $self  = shift;
-    my %param = @_;
-    my $FH    = delete $param{FH};
-
-    return $self
-        if $self->quiet;
-
-    $self->splitter( defined $, ? $, : q{} );
-
-    local $,;
-
-    print { $FH } $self->format(
-        message          => join( $self->splitter, @{ $param{messages} } ),
-        is_suffix_needed => $param{is_suffix_needed},
-    ), "\n";
-
-    return $self;
-}
-
-sub say {
-    my $self     = shift;
-    my @messages = @_;
-
-    return $self->print(
-        messages => \@messages,
-        FH       => *STDOUT,
-    );
-}
-
-sub sayf {
-    my $self     = shift;
-    my $format   = shift;
-    my @messages = @_;
-
-    return $self->print(
-        messages => [ sprintf( $format, @messages ) ],
-        FH       => *STDOUT,
-    );
-}
-
-sub warn {
-    my $self             = shift;
-    my @messages         = @_;
-    my $is_suffix_needed = $messages[-1] !~ m{ [\n] \z}msx;
-
-    return $self->print(
-        messages         => \@messages,
-        FH               => *STDERR,
-        is_suffix_needed => $is_suffix_needed,
-    );
-}
-
-sub warnf {
-    my $self             = shift;
-    my $format           = shift;
-    my @messages         = @_;
-    my $is_suffix_needed = $messages[0] !~ m{ [\n] \z}msx;
-
-    return $self->print(
-        messages         => [ sprintf( $format, @messages ) ],
-        FH               => *STDERR,
-        is_suffix_needed => $is_suffix_needed,
-    );
-}
-
-sub dump {
-    my $self     = shift;
-    my @messages = @_;
-
-    local $Data::Dumper::Terse = 1;
-
-    return $self->print(
-        messages         => [ map { Dumper( $_ ) } @messages ],
-        FH               => *STDERR,
-        is_suffix_needed => 1,
-    );
+sub swarn2 {
+    local $BIAS = $BIAS + 1;
+    &swarn;
 }
 
 1;
@@ -208,54 +91,86 @@ Log::Sigil - show warnings with sigil prefix
 
 =head1 SYNOPSIS
 
-  use Log::Sigil;
-  my $log = Log::Sigil->new;
+  filename: synopsis.pl
+   1 use Log::Sigil qw( swarn swarn2 );
+   2
+   3 sub foo {
+   4     swarn( "foo" );
+   5     swarn( "bar" );
+   6 }
+   7
+   8 swarn( "foo" );
+   9
+  10 foo( );
+  11
+  12 swarn( "bar" );
 
-  $log->quiet( 1 ) if ! DEBUG;
-
-  $log->warn( "hi there." );                  # -> ### hi there.
-  $log->warn( "a prefix will be changeed." ); # -> --- a prefix will be changed.
-
-  package Foo;
-  sub new  { $log->bias( 1 ); bless { }, shift }
-  sub warn { $log->warn( @_ ) }
-
-  package main;
-  Foo->new->warn( "foo" );
+  above shows:
+  === foo by synopsis.pl[8]: main::
+  +++ foo by synopsis.pl[4]: main::foo
+  +++ bar by synopsis.pl[5]: main::foo
+  === bar by synopsis.pl[12]: main::
 
 =head1 DESCRIPTION
 
-Log::Sigil is a message formatter.  Formatting adds a few prefix,
-and prefi is a sigil.  This module just add a few prefix to argument
-of message, but prefix siginals where are you from.  Changing
-sigil by "caller" has most/only things to this module exists.
+This module helps printing debug by adding prefix to the warning message.
+The prefix will change if caller changes, meaning 'foo' sub, and 'bar' sub
+have different prefix each other.
 
-*Note: this can [not] add a suffix of filename and line in the file
-when called from [no] sub.  This depends on 'caller' function.
+i do printing debug frequently.  In debugging, my warning messages became
+too big to read.  When i in trouble (yes, so doing printing
+debug), i do not want to remove the warning messages.  Once i thought it is needed,
+it is needed twice, and more.  Thus, i need a format which can read warning messages
+even if that is big.
 
-=head1 METHODS
+=head1 EXPORTS
 
 =over
 
-=item say
+=item swarn
 
-Likes say message with sigil prefix.
+=item swarn2
 
-=item sayf
+=back
 
-Likes say, but first argument will be format of the sprintf.
+=head1 FUNCTIONS
 
-=item wran
+=over
 
-Likes say, but file handle is specified STDERR.
+=item swarn
 
-=item warnf
+Works all of this module does.  That are,
+adding prefix,
+setting up filename and line,
+and, setting up package and subroutine.
 
-Likes warn, but first argument will be format of the sprintf.
+=item swarn2
 
-=item dump
+Same as swarn, but has a 1 bias.  This is useful when calling from
+some handler subroutine, such as;
 
-Likes warn, but args are changed by Data::Dumper::Dumper.
+  ( my $ua = LWP::UserAgent->new )->add_handler(
+      request_prepare => sub {
+          my( $req, $ua, $h ) = @_;
+          swarn2( "Adding If-Modified-Since..." );
+          $req->...
+          swarn2( "Now req has: ", $req->header( "If-Modified-Since" ) );
+      },
+  );
+
+swarn does not work well this case; this has deep frames.
+
+Oops, that case needs more depth.  Increase BIAS value these cases.
+
+  ( my $ua = LWP::UserAgent->new )->add_handler(
+      request_prepare => sub {
+          my( $req, $ua, $h ) = @_;
+          local $Log::Sigil::BIAS += 4;
+          swarn( "Adding" );
+      },
+  );
+  $ua->get( "http://example.com/" );
+  # --> +++ Adding by .../LWP/UserAgent.pm[243]: LWP::UserAgent::prepare_request
 
 =back
 
@@ -263,28 +178,21 @@ Likes warn, but args are changed by Data::Dumper::Dumper.
 
 =over
 
-=item sigils
+=item SIGILS
 
-Is a array-ref which sorted by using order sigil.
+Is a array which are used as prefix.
 
-=item repeats
+=item TIMES
 
 Specifies how many sigil is repeated.
 
-=item delimiter
+=item SEPARATOR
 
-Will be placed between sigil and log message.
+Will be placed between sigils and log message.
 
-=item bias
+=item BIAS
 
-Controls changing of sigil.  bias for the depth of caller.
-
-=item quiet
-
-Tells Log::Sigil to no output required.
-
-Please remove Log::Sigil from code in production.
-Set true this when you felt Log::Sigil is riot.
+Controls caller frame depth.
 
 =back
 

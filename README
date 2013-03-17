@@ -2,63 +2,85 @@ NAME
     Log::Sigil - show warnings with sigil prefix
 
 SYNOPSIS
-      use Log::Sigil;
-      my $log = Log::Sigil->new;
+      filename: synopsis.pl
+       1 use Log::Sigil qw( swarn swarn2 );
+       2
+       3 sub foo {
+       4     swarn( "foo" );
+       5     swarn( "bar" );
+       6 }
+       7
+       8 swarn( "foo" );
+       9
+      10 foo( );
+      11
+      12 swarn( "bar" );
 
-      $log->quiet( 1 ) if ! DEBUG;
-
-      $log->warn( "hi there." );                  # -> ### hi there.
-      $log->warn( "a prefix will be changeed." ); # -> --- a prefix will be changed.
-
-      package Foo;
-      sub new  { $log->bias( 1 ); bless { }, shift }
-      sub warn { $log->warn( @_ ) }
-
-      package main;
-      Foo->new->warn( "foo" );
+      above shows:
+      === foo by synopsis.pl[8]: main::
+      +++ foo by synopsis.pl[4]: main::foo
+      +++ bar by synopsis.pl[5]: main::foo
+      === bar by synopsis.pl[12]: main::
 
 DESCRIPTION
-    Log::Sigil is a message formatter. Formatting adds a few prefix, and
-    prefi is a sigil. This module just add a few prefix to argument of
-    message, but prefix siginals where are you from. Changing sigil by
-    "caller" has most/only things to this module exists.
+    This module helps printing debug by adding prefix to the warning
+    message. The prefix will change if caller changes, meaning 'foo' sub,
+    and 'bar' sub have different prefix each other.
 
-    *Note: this can [not] add a suffix of filename and line in the file when
-    called from [no] sub. This depends on 'caller' function.
+    i do printing debug frequently. In debugging, my warning messages became
+    too big to read. When i in trouble (yes, so doing printing debug), i do
+    not want to remove the warning messages. Once i thought it is needed, it
+    is needed twice, and more. Thus, i need a format which can read warning
+    messages even if that is big.
 
-METHODS
-    say Likes say message with sigil prefix.
+EXPORTS
+    swarn
+    swarn2
 
-    sayf
-        Likes say, but first argument will be format of the sprintf.
+FUNCTIONS
+    swarn
+        Works all of this module does. That are, adding prefix, setting up
+        filename and line, and, setting up package and subroutine.
 
-    wran
-        Likes say, but file handle is specified STDERR.
+    swarn2
+        Same as swarn, but has a 1 bias. This is useful when calling from
+        some handler subroutine, such as;
 
-    warnf
-        Likes warn, but first argument will be format of the sprintf.
+          ( my $ua = LWP::UserAgent->new )->add_handler(
+              request_prepare => sub {
+                  my( $req, $ua, $h ) = @_;
+                  swarn2( "Adding If-Modified-Since..." );
+                  $req->...
+                  swarn2( "Now req has: ", $req->header( "If-Modified-Since" ) );
+              },
+          );
 
-    dump
-        Likes warn, but args are changed by Data::Dumper::Dumper.
+        swarn does not work well this case; this has deep frames.
+
+        Oops, that case needs more depth. Increase BIAS value these cases.
+
+          ( my $ua = LWP::UserAgent->new )->add_handler(
+              request_prepare => sub {
+                  my( $req, $ua, $h ) = @_;
+                  local $Log::Sigil::BIAS += 4;
+                  swarn( "Adding" );
+              },
+          );
+          $ua->get( "http://example.com/" );
+          # --> +++ Adding by .../LWP/UserAgent.pm[243]: LWP::UserAgent::prepare_request
 
 PROPERTIES
-    sigils
-        Is a array-ref which sorted by using order sigil.
+    SIGILS
+        Is a array which are used as prefix.
 
-    repeats
+    TIMES
         Specifies how many sigil is repeated.
 
-    delimiter
-        Will be placed between sigil and log message.
+    SEPARATOR
+        Will be placed between sigils and log message.
 
-    bias
-        Controls changing of sigil. bias for the depth of caller.
-
-    quiet
-        Tells Log::Sigil to no output required.
-
-        Please remove Log::Sigil from code in production. Set true this when
-        you felt Log::Sigil is riot.
+    BIAS
+        Controls caller frame depth.
 
 AUTHOR
     kuniyoshi kouji <kuniyoshi@cpan.org>
