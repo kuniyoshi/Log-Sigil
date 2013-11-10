@@ -1,5 +1,7 @@
 Revision history for Perl extension Log::Sigil
 
+1.02    Sun Nov 10 23:24:16 JST 2013
+        - use Dist::Zilla
 1.01    Sun Mar 17 23:11:14 JST 2013
         - tidy up module, use only one function that is swarn.
 0.15    Sat Aug 20 14:26:52 2011

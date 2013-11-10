@@ -7,7 +7,7 @@ use List::Util qw( max );
 use constant DEBUG => 0;
 
 our @EXPORT  = qw( swarn swarn2 );
-our $VERSION = "1.01";
+our $VERSION = "1.02";
 
 our @SIGILS    = (
     qw(
