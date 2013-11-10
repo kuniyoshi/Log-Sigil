@@ -25,4 +25,3 @@ is( $warnings[0], "+++ foo by t/04-swarn.sub.t[14]: main::foo" );
 bar( );
 is( $warnings[1], "!!! foo by t/04-swarn.sub.t[18]: main::bar" );
 is( $warnings[2], "!!! bar by t/04-swarn.sub.t[19]: main::bar" );
-

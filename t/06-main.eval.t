@@ -17,4 +17,3 @@ eval {
 
 is( $warnings[0], "+++ foo by t/06-main.eval.t[14]: (eval)::13" );
 is( $warnings[1], "+++ bar by t/06-main.eval.t[15]: (eval)::13" );
-

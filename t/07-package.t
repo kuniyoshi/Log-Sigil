@@ -47,4 +47,3 @@ $o->call;
 # note: the line no. is not anon sub, it is pointed at call sub.
 is( $warnings[4], q{@@@ foo by t/07-package.t[42]: main::__ANON__::28} );
 is( $warnings[5], q{@@@ bar by t/07-package.t[43]: main::__ANON__::28} );
-
